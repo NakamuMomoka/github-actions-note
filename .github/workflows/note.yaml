@@ -205,6 +205,35 @@ jobs:
         run: |
           echo "$DRAFT_JSON_B64" | base64 -d > draft.json
 
-      - name: Debug
+      - name: Publish to note（復元版）
         run: |
-          cat draft.json
+          cat << 'EOF' > post.mjs
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+
+          const state = JSON.parse(process.env.STATE_JSON);
+          const draft = JSON.parse(fs.readFileSync('draft.json'));
+
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ storageState: state });
+          const page = await context.newPage();
+
+          await page.goto('https://note.com/notes/new');
+
+          await page.fill('textarea[placeholder="記事タイトル"]', draft.title);
+
+          await page.click('[contenteditable="true"]');
+          await page.keyboard.type(draft.draftBody);
+
+          if (process.env.IS_PUBLIC === 'true') {
+            await page.click('text=公開');
+          } else {
+            await page.click('text=下書き保存');
+          }
+
+          await page.waitForTimeout(3000);
+
+          await browser.close();
+          EOF
+
+          node post.mjs
