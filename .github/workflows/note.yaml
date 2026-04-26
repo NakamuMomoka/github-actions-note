@@ -29,13 +29,17 @@ on:
         required: true
         default: 'false'
         type: choice
-        options: ['true','false']
+        options:
+          - 'true'
+          - 'false'
       dry_run:
         description: '投稿をスキップ（生成のみ）'
         required: true
         default: 'false'
         type: choice
-        options: ['true','false']
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
   contents: read
@@ -43,17 +47,9 @@ permissions:
 env:
   TZ: Asia/Tokyo
 
-# ========================================
-# ORIGINAL RESEARCH（コメントアウト）
-# ========================================
-# jobs:
-#   research:
-#     name: Research (CCSDK WebSearch/WebFetch)
-#     ...
-
-# ========================================
-# LOW COST RESEARCH（スキップ）
-# ========================================
+# ===============================
+# 低コスト Research（スキップ）
+# ===============================
 jobs:
   research:
     runs-on: ubuntu-latest
@@ -73,9 +69,9 @@ jobs:
           echo "$b64" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-# ========================================
-# WRITE（軽量化）
-# ========================================
+# ===============================
+# Write（売れるレビュー版）
+# ===============================
   write:
     needs: research
     runs-on: ubuntu-latest
@@ -101,26 +97,58 @@ jobs:
           npm init -y
           npm i ai @ai-sdk/anthropic
 
-      - name: Generate draft（低コスト版）
+      - name: Generate draft（売れるレビュー版）
         run: |
-          cat > write.mjs <<'EOF'
+          cat << 'EOF' > write.mjs
           import { generateText } from 'ai';
           import { anthropic } from '@ai-sdk/anthropic';
           import fs from 'fs';
 
           const prompt = `
-          テーマ: ${process.env.THEME}
-          読者: ${process.env.TARGET}
-          伝えたいこと: ${process.env.MESSAGE}
-          CTA: ${process.env.CTA}
+          あなたは「読みやすくて売れるレビュー記事」を書くプロです。
 
-          note記事として読みやすく、見出し付きで作成してください。
+          # ルール
+          - 実体験風で書く
+          - 読者の悩みから始める
+          - 断定しすぎない
+          - 比較・メリット・デメリットを入れる
+          - 商品リンクを自然に置ける構成にする
+          - 他記事のコピーは禁止
+
+          # 構成（必須）
+          1. 共感（悩み）
+          2. 試したきっかけ
+          3. 結論
+          4. 実際の体験
+          5. 良かった点
+          6. 微妙だった点
+          7. 比較
+          8. おすすめな人
+          9. まとめ＋CTA
+
+          # テーマ
+          ${process.env.THEME}
+
+          # 読者
+          ${process.env.TARGET}
+
+          # 伝えたいこと
+          ${process.env.MESSAGE}
+
+          # CTA
+          ${process.env.CTA}
+
+          # 出力条件
+          - 見出しあり
+          - 2000〜4000文字
+          - 「※ここに商品リンク」を適切な位置に入れる
           `;
 
           const { text } = await generateText({
             model: anthropic('claude-3-haiku'),
             prompt,
-            maxTokens: 800
+            maxTokens: 1200,
+            temperature: 0.7
           });
 
           const data = {
@@ -134,7 +162,6 @@ jobs:
           EOF
 
           node write.mjs
-
       - name: Collect
         id: collect
         run: |
@@ -143,18 +170,15 @@ jobs:
           echo "title=$title" >> $GITHUB_OUTPUT
           echo "draft_json_b64=$b64" >> $GITHUB_OUTPUT
 
-# ========================================
-# FACT CHECK（完全停止）
-# ========================================
-# factcheck:
-#   ...
-
+# ===============================
+# Fact-check（停止）
+# ===============================
   factcheck:
     if: false
 
-# ========================================
-# POST（そのまま）
-# ========================================
+# ===============================
+# Post（そのまま）
+# ===============================
   post:
     needs: write
     if: ${{ github.event.inputs.dry_run != 'true' }}
