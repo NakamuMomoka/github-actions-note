@@ -219,7 +219,10 @@ jobs:
           const page = await context.newPage();
 
           await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
-          
+
+          await page.screenshot({ path: 'note-debug.png', fullPage: true });
+          console.log('URL=' + page.url());
+
           await page.waitForSelector('textarea[placeholder="記事タイトル"]', { timeout: 180000 });
           await page.fill('textarea[placeholder="記事タイトル"]', draft.title);
           
@@ -240,3 +243,10 @@ jobs:
           EOF
 
           node post.mjs
+
+      - name: Upload note debug screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: note-debug-screenshot
+          path: note-debug.png
