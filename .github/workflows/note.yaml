@@ -218,7 +218,11 @@ jobs:
           const context = await browser.newContext({ storageState: state });
           const page = await context.newPage();
 
-          await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
+          await page.goto('https://editor.note.com/new', {
+            waitUntil: 'networkidle'
+          });
+          
+          await page.waitForTimeout(5000);
 
           await page.screenshot({ path: 'note-debug.png', fullPage: true });
           console.log('URL=' + page.url());
