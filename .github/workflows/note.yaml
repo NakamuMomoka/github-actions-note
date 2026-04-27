@@ -214,16 +214,21 @@ jobs:
           const state = JSON.parse(process.env.STATE_JSON);
           const draft = JSON.parse(fs.readFileSync('draft.json'));
 
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({ storageState: state });
-          const page = await context.newPage();
-
-          await page.goto('https://editor.note.com/new', {
-            waitUntil: 'networkidle'
+          const browser = await chromium.launch({ headless: false });
+          
+          const context = await browser.newContext({
+            storageState: state,
+            viewport: { width: 1280, height: 800 }
           });
           
+          const page = await context.newPage();
+          
+          await page.goto('https://editor.note.com/new', { waitUntil: 'networkidle' });
           await page.waitForTimeout(5000);
-
+          
+          await page.reload();
+          await page.waitForTimeout(5000);
+          
           await page.screenshot({ path: 'note-debug.png', fullPage: true });
           console.log('URL=' + page.url());
 
