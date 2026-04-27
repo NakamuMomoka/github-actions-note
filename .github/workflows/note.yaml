@@ -214,7 +214,7 @@ jobs:
           const state = JSON.parse(process.env.STATE_JSON);
           const draft = JSON.parse(fs.readFileSync('draft.json'));
 
-          const browser = await chromium.launch({ headless: false });
+          const browser = await chromium.launch({ headless: true });
           
           const context = await browser.newContext({
             storageState: state,
